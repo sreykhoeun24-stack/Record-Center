@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "ContainerRecord": {
+      "title": "Container Record",
+      "description": "A record of a container stored in the dry port.",
+      "type": "object",
+      "properties": {
+        "containerNumber": {
+          "type": "string",
+          "description": "The unique identifier for the container."
+        },
+        "ownerCode": {
+          "type": "string",
+          "description": "Code representing the owner of the container contents."
+        },
+        "asnNumber": {
+          "type": "string",
+          "description": "Advance Shipping Notice number."
+        },
+        "soNumber": {
+          "type": "string",
+          "description": "Shipping Order number."
+        },
+        "goodsName": {
+          "type": "string",
+          "description": "Description of the goods inside."
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "yard": { "type": "string" },
+            "zone": { "type": "string" },
+            "row": { "type": "string" },
+            "tier": { "type": "string" }
+          }
+        },
+        "gateInDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the container entered the port."
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "The UID of the user who created the record."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["containerNumber", "ownerCode", "asnNumber", "gateInDate"]
+    }
+  },
+  "firestore": {
+    "/containers/{containerId}": {
+      "schema": "ContainerRecord",
+      "description": "Collection of all container records."
+    }
+  }
+}

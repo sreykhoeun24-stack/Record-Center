@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: containers
+    // Document ID: uuid
+    // Fields:
+    //   - containerNumber: string (required) - Monospace format container ID
+    //   - ownerCode: string (required) - 3-4 letter code
+    //   - asnNumber: string (required) - ASN Reference
+    //   - soNumber: string (optional) - SO Reference
+    //   - goodsName: string (optional) - Item description
+    //   - location: map (required)
+    //       - yard: string
+    //       - zone: string
+    //       - row: string
+    //       - tier: string
+    //   - gateInDate: timestamp (required) - When the container arrived
+    //   - authorUid: string (required) - Creator UID
+    //   - createdAt: timestamp (required)
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "sreykhoeun24@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function isValidContainer(data) {
+      return data.containerNumber is string && data.containerNumber.size() > 0 && data.containerNumber.size() < 20 &&
+             data.ownerCode is string && data.ownerCode.size() > 0 &&
+             data.asnNumber is string && data.asnNumber.size() > 0 &&
+             data.location is map &&
+             data.location.yard is string &&
+             data.location.zone is string &&
+             data.location.row is string &&
+             data.location.tier is string &&
+             data.gateInDate is timestamp &&
+             data.authorUid is string &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    match /containers/{containerId} {
+      // Clerks need to read all data for syncing
+      allow read: if isAuthenticated();
+      
+      // Allow creation if authenticated and data is valid
+      allow create: if isAuthenticated() && isValidContainer(request.resource.data) && request.resource.data.authorUid == request.auth.uid;
+      
+      // Allow updates by owner or admin
+      allow update: if isAuthenticated() && isValidContainer(request.resource.data) && (isDocOwner() || isAdmin());
+      
+      // Allow deletion only by admin
+      allow delete: if isAdmin();
+    }
+
+    match /chat/{msgId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                    request.resource.data.text is string && 
+                    request.resource.data.text.size() > 0 && 
+                    request.resource.data.text.size() < 1000 &&
+                    request.resource.data.senderUid == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
